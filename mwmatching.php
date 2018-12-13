@@ -77,7 +77,7 @@ class MaxWeightMatching {
         global $DEBUG;
 
         $this->edges = $edges;
-        $this->maxcardinality = $this->maxcardinality;
+        $this->maxcardinality = $maxcardinality;
 
         # Deal swiftly with empty graphs.
         if (!$this->edges) {
@@ -434,7 +434,7 @@ class MaxWeightMatching {
             }
         }
         if ($DEBUG) {
-            $DEBUG("blossomchilds[$b]=" . $this->arr_repr($this->blossomchilds[$b], true));
+            $DEBUG("blossomchilds[$b]=" . $this->arr_repr($this->blossomchilds[$b]));
         }
     }
 
@@ -442,7 +442,7 @@ class MaxWeightMatching {
     function expandBlossom($b, $endstage) {
         global $DEBUG;
         if ($DEBUG) {
-            $DEBUG("expandBlossom($b,$endstage) " . $this->arr_repr($this->blossomchilds[$b], true));
+            $DEBUG("expandBlossom($b,$endstage) " . $this->arr_repr($this->blossomchilds[$b]));
         }
         # Convert sub-blossoms into top-level blossoms.
         foreach ($this->blossomchilds[$b] as $s) {
@@ -779,7 +779,7 @@ class MaxWeightMatching {
             }
         }
         if ($DEBUG && $bd != $tbd) {
-            $DEBUG("bk=$bk tbk=$tbk bd=" .  $this->arr_repr($bd, true) . ' tbd=' . $this->arr_repr($tbd, true));
+            $DEBUG("bk=$bk tbk=$tbk bd=" .  $this->arr_repr($bd) . ' tbd=' . $this->arr_repr($tbd));
         }
         assert($bd == $tbd);
     }
@@ -791,7 +791,7 @@ class MaxWeightMatching {
 
     // Fake version of x // y from python.
     function floorintdiv($x, $y) {
-        return floor($x / $y);
+        return intval(floor($x / $y));
     }
 
     // Replace negative index with positive equivalent so we can use the logic that an index of -1 means the last element as in python.
