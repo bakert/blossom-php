@@ -585,7 +585,8 @@ class MaxWeightMatching {
             }
             # Step to the next sub-blossom && augment it recursively.
             $j += $jstep;
-            $t = $this->blossomchilds[$b][$j];
+            $safe_index = $this->safe_index($this->blossomchilds[$b], $j);
+            $t = $this->blossomchilds[$b][$safe_index];
             if ($t >= $this->nvertex) {
                 $this->augmentBlossom($t, $this->endpoint[$p ^ 1]);
             }
