@@ -1119,7 +1119,7 @@ class MaxWeightMatching {
 }
 
 # Unit tests
-if ($argv && $argv[0] && realpath($argv[0]) === __FILE__) {
+if (isset($argv) && $argv && $argv[0] && realpath($argv[0]) === __FILE__) {
 
     class MaxWeightMatchingTests {
 
