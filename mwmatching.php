@@ -6,13 +6,13 @@ Weighted maximum matching in general graphs.
 
 http://bluebones.net/blossom-algorithm-in-php
 
-This is a direct conversion of Joris van Rantwijk’s python code with 
-the same tests and the same output. See 
+This is a direct conversion of Joris van Rantwijk’s python code with
+the same tests and the same output. See
 http://jorisvr.nl/article/maximum-matching
 
 The algorithm is taken from "Efficient Algorithms for Finding Maximum
 Matching in Graphs" by Zvi Galil, ACM Computing Surveys, 1986.
-It is $based on the "blossom" method for finding augmenting $paths and
+It is based on the "blossom" method for finding augmenting paths and
 the "primal-dual" method for finding a matching of maximum weight, both
 due to Jack Edmonds.
 Some ideas came from "Implementation of algorithms for maximum matching
@@ -23,13 +23,13 @@ to validate this new code.
 
 */
 
-# If assigned, $DEBUG(str) is called with lots of $debug messages.
+# If assigned, $DEBUG(str) is called with lots of debug messages.
 $DEBUG = null;
 // $DEBUG = function($s) {
 //     error_log("DEBUG: $s");
 // };
 
-# Check $delta2/delta3 computation after every substage;
+# Check delta2/delta3 computation after every substage;
 # only works on integer weights, slows down the algorithm to O(n^4).
 $CHECK_DELTA = false;
 
@@ -45,31 +45,28 @@ function maxWeightMatching($edges, $maxcardinality=false) {
 class MaxWeightMatching {
     /*
     Compute a maximum-weighted matching in the general undirected
-    weighted graph given by "edges".  If "$maxcardinality" is true,
+    weighted graph given by "edges".  If "maxcardinality" is true,
     only maximum-cardinality matchings are considered as solutions.
 
-    Edges is a sequence of tuples ($i, $j, $wt) describing an undirected
-    edge between vertex $i && vertex $j with weight wt.  There is at most
+    Edges is a sequence of tuples (i, j, wt) describing an undirected
+    edge between vertex i && vertex j with weight wt.  There is at most
     one edge between any two vertices; no vertex has an edge to itself.
     Vertices are identified by consecutive, non-negative integers.
 
-    Return a list "mate", such that $this->mate[$i] == $j if vertex $i is
-    matched to vertex j, && $this->mate[$i] == -1 if vertex $i is not matched.
+    Return a list "mate", such that $this->mate[$i] == $j if vertex i is
+    matched to vertex j, && $this->mate[$i] == -1 if vertex i is not matched.
 
-    This function takes time O(n ** 3)."""
-    global $DEBUG;
+    This function takes time O(n ** 3).
 
-    #
-    # Vertices are numbered 0 .. ($this->nvertex-1).
-    # Non-trivial blossoms are numbered $this->nvertex .. (2*$this->nvertex-1)
-    #
-    # Edges are numbered 0 .. (nedge-1).
-    # Edge $this->endpoints are numbered 0 .. (2*nedge-1), such that $this->endpoints
-    # (2*k) && (2*k+1) both belong to edge k.
-    #
-    # Many terms used in the comments (sub-blossom, T-vertex) come from
-    # the paper by Galil; read the paper before reading this code.
-    #
+    Vertices are numbered 0 .. ($this->nvertex - 1).
+    Non-trivial blossoms are numbered $this->nvertex .. (2*$this->nvertex-1)
+
+    Edges are numbered 0 .. (nedge-1).
+    Edge $this->endpoints are numbered 0 .. (2*nedge-1), such that $this->endpoints
+    (2*k) && (2*k+1) both belong to edge k.
+
+    Many terms used in the comments (sub-blossom, T-vertex) come from
+    the paper by Galil; read the paper before reading this code.
 
     */
 
@@ -107,10 +104,10 @@ class MaxWeightMatching {
         $maxweight = max(0, max($weights));
 
         # If p is an edge $this->endpoint,
-        # $this->endpoint[$p] is the vertex to which $this->endpoint p is attached.
+        # $this->endpoint[$p] is the vertex to which endpoint p is attached.
         # Not modified by the algorithm.
         $this->endpoint = [];
-        foreach (range(0, 2 * $this->nedge - 1) as $p) { // BAKERT range is one higher in python so -1 here and everywhere else we use range().
+        foreach (range(0, 2 * $this->nedge - 1) as $p) { // range is one higher in python so -1 here and everywhere else we use range().
             $this->endpoint[] = $this->edges[$this->floorintdiv($p, 2)][$p % 2];
         }
 
@@ -859,7 +856,7 @@ class MaxWeightMatching {
 
             # Make queue empty.
             $this->queue = [];
-     
+
             # $this->label single blossoms/vertices with $S && put them in the queue.
             foreach (range(0, $this->nvertex - 1) as $v) {
                 if ($this->mate[$v] == -1 && $this->label[$this->inblossom[$v]] == 0) {
@@ -1058,7 +1055,7 @@ class MaxWeightMatching {
                 if ($DEBUG) {
                     $DEBUG("delta$deltatype=$delta");
                 }
-                if ($deltatype == 1) { 
+                if ($deltatype == 1) {
                     # No further improvement possible; optimum reached.
                     break;
                 } elseif ($deltatype == 2) {
