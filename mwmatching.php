@@ -784,7 +784,8 @@ class MaxWeightMatching {
 
     // Fake version of arr[-1] from python.
     function last_elem($arr) {
-        return end(array_values($arr));
+        $values = array_values($arr);
+        return end($values);
     }
 
     // Fake version of x // y from python.
