@@ -70,7 +70,6 @@ class MaxWeightMatching {
 
     */
 
-    private $thisedges;
     private $maxcardinality;
     private $edges;
     private $nedge;
