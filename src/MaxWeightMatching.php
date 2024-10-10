@@ -1,5 +1,7 @@
 <?php
 
+namespace Bakert\BlossomPhp;
+
 /*
 
 Weighted maximum matching in general graphs.
@@ -22,25 +24,6 @@ A C program for maximum weight matching by Ed Rothberg was used extensively
 to validate this new code.
 
 */
-
-# If assigned, $DEBUG(str) is called with lots of debug messages.
-$DEBUG = null;
-// $DEBUG = function($s) {
-//     error_log("DEBUG: $s");
-// };
-
-# Check delta2/delta3 computation after every substage;
-# only works on integer weights, slows down the algorithm to O(n^4).
-$CHECK_DELTA = false;
-
-# Check optimality of solution before returning; only works on integer weights.
-$CHECK_OPTIMUM = true;
-
-function maxWeightMatching($edges, $maxcardinality=false) {
-    global $DEBUG;
-    $o = new MaxWeightMatching($edges, $maxcardinality);
-    return $o->main();
-}
 
 class MaxWeightMatching {
     /*
@@ -70,6 +53,19 @@ class MaxWeightMatching {
 
     */
 
+    # Check delta2/delta3 computation after every substage;
+    # only works on integer weights, slows down the algorithm to O(n^4).
+    private $checkDelta = false;
+
+    # Check optimality of solution before returning; only works on integer weights.
+    private $checkOptimum = true;
+
+    # If assigned, $debug(str) is called with lots of debug messages.
+    private $debug = null;
+    // $debug = function($s) {
+    //     error_log("DEBUG: $s");
+    // };
+
     private $maxcardinality;
     private $edges;
     private $nedge;
@@ -92,11 +88,13 @@ class MaxWeightMatching {
     private $queue;
     private $bestedgeto;
 
-    function __construct($edges, $maxcardinality=false) {
-        global $DEBUG;
+    public function __construct($edges, $maxcardinality = false, $checkDelta = false, $checkOptimum = true, $debug = null) {
 
         $this->edges = $edges;
         $this->maxcardinality = $maxcardinality;
+        $this->checkDelta = $checkDelta;
+        $this->checkOptimum = $checkOptimum;
+        $this->debug = $debug;
 
         # Deal swiftly with empty graphs.
         if (!$this->edges) {
@@ -235,15 +233,13 @@ class MaxWeightMatching {
     }
 
     # Return 2 * slack of edge k (does not work inside blossoms).
-    function slack($k) {
-        global $DEBUG;
+    private function slack($k) {
         list($i, $j, $wt) = $this->safe_access($this->edges, $k);
         return $this->dualvar[$i] + $this->dualvar[$j] - 2 * $wt;
     }
 
     # Generate the leaf vertices of a blossom.
-    function blossomLeaves($b) {
-        global $DEBUG;
+    private function blossomLeaves($b) {
         if ($b < $this->nvertex) {
             yield $b;
         } else {
@@ -262,10 +258,9 @@ class MaxWeightMatching {
     # Assign $this->label t to the top-level blossom containing vertex w
     # && record the fact that $w was reached through the edge with
     # remote $this->endpoint p.
-    function assignLabel($w, $t, $p) {
-        global $DEBUG;
-        if ($DEBUG) {
-            $DEBUG("assignLabel($w,$t,$p)");
+    private function assignLabel($w, $t, $p) {
+        if ($this->debug) {
+            $this->debug("assignLabel($w,$t,$p)");
         }
         $b = $this->inblossom[$w];
         assert($this->label[$w] == 0 && $this->label[$b] == 0);
@@ -276,8 +271,8 @@ class MaxWeightMatching {
             # $b became an S-vertex/blossom; add it(s vertices) to the queue.
             foreach ($this->blossomLeaves($b) as $leaf) {
                 $this->queue[] = $leaf;
-                if ($DEBUG) {
-                    $DEBUG("PUSH $leaf");
+                if ($this->debug) {
+                    $this->debug("PUSH $leaf");
                 }
             }
         } elseif ($t == 2) {
@@ -292,10 +287,9 @@ class MaxWeightMatching {
 
     # Trace back from vertices $v && $w to discover either a new blossom
     # || an augmenting $path. Return the $base vertex of the new blossom || -1.
-    function scanBlossom($v, $w) {
-        global $DEBUG;
-        if ($DEBUG) {
-            $DEBUG("scanBlossom($v,$w)");
+    private function scanBlossom($v, $w) {
+        if ($this->debug) {
+            $this->debug("scanBlossom($v,$w)");
         }
         # Trace back from $v && w, placing breadcrumbs as we go.
         $path = [];
@@ -339,16 +333,15 @@ class MaxWeightMatching {
     # Construct a new blossom with given $base, containing edge k which
     # connects a pair of $S vertices. $this->label the new blossom as S; set its dual
     # variable to zero; relabel its T-vertices to $S && add them to the queue.
-    function addBlossom($base, $k) {
-        global $DEBUG;
+    private function addBlossom($base, $k) {
         list($v, $w, $wt) = $this->edges[$k];
         $bb = $this->inblossom[$base];
         $bv = $this->inblossom[$v];
         $bw = $this->inblossom[$w];
         # Create blossom.
         $b = array_pop($this->unusedblossoms);
-        if ($DEBUG) {
-            $DEBUG("addBlossom($base,$k) (v=$v w=$w) -> $b");
+        if ($this->debug) {
+            $this->debug("addBlossom($base,$k) (v=$v w=$w) -> $b");
         }
         $this->blossombase[$b] = $base;
         $this->blossomparent[$b] = -1;
@@ -452,16 +445,15 @@ class MaxWeightMatching {
                 $this->bestedge[$b] = $k;
             }
         }
-        if ($DEBUG) {
-            $DEBUG("blossomchilds[$b]=" . $this->arr_repr($this->blossomchilds[$b]));
+        if ($this->debug) {
+            $this->debug("blossomchilds[$b]=" . $this->arr_repr($this->blossomchilds[$b]));
         }
     }
 
     # Expand the given top-level blossom.
-    function expandBlossom($b, $endstage) {
-        global $DEBUG;
-        if ($DEBUG) {
-            $DEBUG("expandBlossom($b,$endstage) " . $this->arr_repr($this->blossomchilds[$b]));
+    private function expandBlossom($b, $endstage) {
+        if ($this->debug) {
+            $this->debug("expandBlossom($b,$endstage) " . $this->arr_repr($this->blossomchilds[$b]));
         }
         # Convert sub-blossoms into top-level blossoms.
         foreach ($this->blossomchilds[$b] as $s) {
@@ -564,10 +556,9 @@ class MaxWeightMatching {
 
     # Swap matched/unmatched edges over an alternating $path throughblossomb;
     # between vertex $v && the $base vertex. Keep blossom bookkeeping consistent.
-    function augmentBlossom($b, $v) {
-        global $DEBUG;
-        if ($DEBUG) {
-            $DEBUG("augmentBlossom($b,$v)");
+    private function augmentBlossom($b, $v) {
+        if ($this->debug) {
+            $this->debug("augmentBlossom($b,$v)");
         }
         # Bubble up through the blossom tree from vertex $v to an immediate
         # sub-blossom of b.
@@ -612,8 +603,8 @@ class MaxWeightMatching {
             # Match the edge connecting those sub-blossoms.
             $this->mate[$this->endpoint[$p]] = $p ^ 1;
             $this->mate[$this->endpoint[$p ^ 1]] = $p;
-            if ($DEBUG) {
-                $DEBUG('PAIR(a) ' . $this->endpoint[$p] . ' ' . $this->endpoint[$p ^ 1] . ' (k=' . ($this->floorintdiv($p, 2)) . ')');
+            if ($this->debug) {
+                $this->debug('PAIR(a) ' . $this->endpoint[$p] . ' ' . $this->endpoint[$p ^ 1] . ' (k=' . ($this->floorintdiv($p, 2)) . ')');
             }
         }
         # Rotate the list of sub-blossoms to put the new $base at the front.
@@ -626,14 +617,13 @@ class MaxWeightMatching {
     # Swap matched/unmatched edges over an alternating $path between two
     # single vertices. The augmenting $path runs through edge k, which
     # connects a pair of $S vertices.
-    function augmentMatching($k) {
-        global $DEBUG;
+    private function augmentMatching($k) {
         list($v, $w, $wt) = $this->edges[$k];
-        if ($DEBUG) {
-            $DEBUG("augmentMatching($k) (v=$v w=$w)");
+        if ($this->debug) {
+            $this->debug("augmentMatching($k) (v=$v w=$w)");
         }
-        if ($DEBUG) {
-            $DEBUG("PAIR(b) $v $w (k=$k)");
+        if ($this->debug) {
+            $this->debug("PAIR(b) $v $w (k=$k)");
         }
         foreach ([[$v, 2 * $k + 1], [$w, 2 * $k]] as $row) {
             list($s, $p) = $row;
@@ -672,16 +662,15 @@ class MaxWeightMatching {
                 # Keep the opposite $this->endpoint;
                 # it will be assigned to $this->mate[$s] in the next step.
                 $p = $this->labelend[$bt] ^ 1;
-                if ($DEBUG) {
-                    $DEBUG("PAIR(c) $s $t (k=" . ($this->floorintdiv($p, 2)) . ')');
+                if ($this->debug) {
+                    $this->debug("PAIR(c) $s $t (k=" . ($this->floorintdiv($p, 2)) . ')');
                 }
             }
         }
     }
 
     # Verify that the optimum solution has been reached.
-    function verifyOptimum() {
-        global $DEBUG;
+    private function verifyOptimum() {
         if ($this->maxcardinality) {
             # Vertices may have negative dual;
             # find a constant non-negative number to add to all vertex duals.
@@ -739,8 +728,7 @@ class MaxWeightMatching {
     }
 
     # Check optimized $delta2 against a trivial computation.
-    function checkDelta2() {
-        global $DEBUG;
+    private function checkDelta2() {
         foreach (range(0, $this->nvertex - 1) as $v) {
             if ($this->label[$this->inblossom[$v]] == 0) {
                 $bd = null;
@@ -756,8 +744,8 @@ class MaxWeightMatching {
                         }
                     }
                 }
-                if ($DEBUG && ($this->bestedge[$v] != -1 || $bk != -1) && ($this->bestedge[$v] == -1 || $bd != $this->slack($this->bestedge[$v]))) {
-                    $DEBUG('v=' . $v . ' bk=' . $bk . ' bd=' . $bd . ' $this->bestedge[$v]=' . $this->bestedge[$v] . ' slack=' . $this->slack($this->bestedge[$v]));
+                if ($this->debug && ($this->bestedge[$v] != -1 || $bk != -1) && ($this->bestedge[$v] == -1 || $bd != $this->slack($this->bestedge[$v]))) {
+                    $this->debug('v=' . $v . ' bk=' . $bk . ' bd=' . $bd . ' $this->bestedge[$v]=' . $this->bestedge[$v] . ' slack=' . $this->slack($this->bestedge[$v]));
                 }
                 assert(($bk == -1 && $this->bestedge[$v] == -1) || ($this->bestedge[$v] != -1 && $bd == $this->slack($this->bestedge[$v])));
             }
@@ -765,8 +753,7 @@ class MaxWeightMatching {
     }
 
     # Check optimized $delta3 against a trivial computation.
-    function checkDelta3() {
-        global $DEBUG;
+    private function checkDelta3() {
         $bk = -1;
         $bd = null;
         $tbk = -1;
@@ -798,25 +785,25 @@ class MaxWeightMatching {
                 }
             }
         }
-        if ($DEBUG && $bd != $tbd) {
-            $DEBUG("bk=$bk tbk=$tbk bd=" .  $this->arr_repr($bd) . ' tbd=' . $this->arr_repr($tbd));
+        if ($this->debug && $bd != $tbd) {
+            $this->debug("bk=$bk tbk=$tbk bd=" .  $this->arr_repr($bd) . ' tbd=' . $this->arr_repr($tbd));
         }
         assert($bd == $tbd);
     }
 
     // Fake version of arr[-1] from python.
-    function last_elem($arr) {
+    private function last_elem($arr) {
         $values = array_values($arr);
         return end($values);
     }
 
     // Fake version of x // y from python.
-    function floorintdiv($x, $y) {
+    private function floorintdiv($x, $y) {
         return intval(floor($x / $y));
     }
 
     // Replace negative index with positive equivalent so we can use the logic that an index of -1 means the last element as in python.
-    function safe_index($arr, $requested_index) {
+    private function safe_index($arr, $requested_index) {
         if ($requested_index >= 0) {
             return $requested_index;
         }
@@ -824,12 +811,12 @@ class MaxWeightMatching {
     }
 
     // Allow -1 and similar to access from the end of an array instead of looking for a key of -1.
-    function safe_access($arr, $requested_index) {
+    private function safe_access($arr, $requested_index) {
         return $arr[$this->safe_index($arr, $requested_index)];
     }
 
     // Single line array representation similar to print(arr) in python.
-    function arr_repr($arr) {
+    private function arr_repr($arr) {
         $s = '[';
         foreach ($arr as $v) {
             if (is_array($v)) {
@@ -841,15 +828,7 @@ class MaxWeightMatching {
         return rtrim($s, ', ') . ']';
     }
 
-    function print_arr($arr) {
-        print($this->arr_repr($arr) . "\n");
-    }
-
-    function main() {
-        global $DEBUG;
-        global $CHECK_DELTA;
-        global $CHECK_OPTIMUM;
-
+    public function main() {
         # Deal swiftly with empty graphs.
         if (!$this->edges) {
             return [];
@@ -861,8 +840,8 @@ class MaxWeightMatching {
             # Each iteration of this loop is a "stage".
             # A stage finds an augmenting $path && uses that to improve
             # the matching.
-            if ($DEBUG) {
-                $DEBUG("STAGE $t");
+            if ($this->debug) {
+                $this->debug("STAGE $t");
             }
 
             # Remove $this->labels from top-level blossoms/vertices.
@@ -898,8 +877,8 @@ class MaxWeightMatching {
                 # the stage ends. If there is no augmenting $path, the
                 # primal-dual method is used to pump some slack out of
                 # the dual variables.
-                if ($DEBUG) {
-                    $DEBUG('SUBSTAGE');
+                if ($this->debug) {
+                    $this->debug('SUBSTAGE');
                 }
 
                 # Continue $this->labeling until all vertices which are reachable
@@ -908,8 +887,8 @@ class MaxWeightMatching {
 
                     # Take an $S vertex from the queue.
                     $v = array_pop($this->queue);
-                    if ($DEBUG) {
-                        $DEBUG("POP v=$v");
+                    if ($this->debug) {
+                        $this->debug("POP v=$v");
                     }
                     assert($this->label[$this->inblossom[$v]] == 1);
 
@@ -989,7 +968,7 @@ class MaxWeightMatching {
                 $delta = $deltaedge = $deltablossom = null;
 
                 # Verify data structures for $delta2/delta3 computation.
-                if ($CHECK_DELTA) {
+                if ($this->checkDelta) {
                     $this->checkDelta2();
                     $this->checkDelta3();
                 }
@@ -1076,8 +1055,8 @@ class MaxWeightMatching {
                 }
 
                 # Take action at the point where minimum $delta occurred.
-                if ($DEBUG) {
-                    $DEBUG("delta$deltatype=$delta");
+                if ($this->debug) {
+                    $this->debug("delta$deltatype=$delta");
                 }
                 if ($deltatype == 1) {
                     # No further improvement possible; optimum reached.
@@ -1121,7 +1100,7 @@ class MaxWeightMatching {
         }
 
         # Verify that we reached the optimum solution.
-        if ($CHECK_OPTIMUM) {
+        if ($this->checkOptimum) {
             $this->verifyOptimum();
         }
 
@@ -1137,124 +1116,4 @@ class MaxWeightMatching {
 
         return $this->mate;
     }
-}
-
-# Unit tests
-if (isset($argv) && $argv && $argv[0] && realpath($argv[0]) === __FILE__) {
-
-    class MaxWeightMatchingTests {
-
-        function test10_empty() {
-            # empty input graph
-            assert(maxWeightMatching([]) === []);
-        }
-
-        function test11_singleedge() {
-            # single edge
-            assert(maxWeightMatching([[0, 1, 1]]) === [1, 0]);
-        }
-
-       function test12() {
-            assert(maxWeightMatching([[1, 2, 10], [2, 3, 11]]) === [-1, -1, 3, 2]);
-        }
-
-        function test13() {
-            assert(maxWeightMatching([[1, 2, 5], [2, 3, 11], [3, 4, 5]]) === [-1, -1, 3, 2, -1]);
-        }
-
-
-        function test14_maxcard() {
-            # maximum cardinality
-            assert(maxWeightMatching([[1, 2, 5], [2, 3, 11], [3, 4, 5]], true) === [-1, 2, 1, 4, 3]);
-        }
-
-        function test15_float() {
-            # floating point weigths
-            assert(maxWeightMatching([[1, 2, M_PI], [2, 3, exp(1)], [1, 3, 3.0], [1, 4, sqrt(2.0)]]) === [-1, 4, 3, 2, 1]);
-        }
-
-        function test16_negative() {
-            # negative weights
-            assert(maxWeightMatching([[1, 2, 2], [1, 3, -2], [2, 3, 1], [2, 4, -1], [3, 4, -6]], false) === [-1, 2, 1, -1, -1]);
-            assert(maxWeightMatching([[1, 2, 2], [1, 3, -2], [2, 3, 1], [2, 4, -1], [3, 4, -6]], true) === [-1, 3, 4, 1, 2]);
-        }
-
-
-        function test20_sblossom() {
-            # create S-blossom && use it for augmentation
-            assert(maxWeightMatching([[1, 2, 8], [1, 3, 9], [2, 3, 10], [3, 4, 7]]) === [-1, 2, 1, 4, 3]);
-            assert(maxWeightMatching([[1, 2, 8], [1, 3, 9], [2, 3, 10], [3, 4, 7], [1, 6, 5], [4, 5, 6]]) === [-1, 6, 3, 2, 5, 4, 1]);
-        }
-
-        function test21_tblossom() {
-            # create S-blossom, relabel as T-blossom, use for augmentation
-            assert(maxWeightMatching([[1, 2, 9], [1, 3, 8], [2, 3, 10], [1, 4, 5], [4, 5, 4], [1, 6, 3]]) === [-1, 6, 3, 2, 5, 4, 1]);
-            assert(maxWeightMatching([[1, 2, 9], [1, 3, 8], [2, 3, 10], [1, 4, 5], [4, 5, 3], [1, 6, 4]]) === [-1, 6, 3, 2, 5, 4, 1]);
-            assert(maxWeightMatching([[1, 2, 9], [1, 3, 8], [2, 3, 10], [1, 4, 5], [4, 5, 3], [3, 6, 4]]) === [-1, 2, 1, 6, 5, 4, 3]);
-        }
-
-        function test22_s_nest() {
-            # create nested S-blossom, use for augmentation
-            assert(maxWeightMatching([[1, 2, 9], [1, 3, 9], [2, 3, 10], [2, 4, 8], [3, 5, 8], [4, 5, 10], [5, 6, 6]]) === [-1, 3, 4, 1, 2, 6, 5]);
-        }
-
-        function test23_s_relabel_nest() {
-            # create S-blossom, relabel as S, include in nested S-blossom
-            assert(maxWeightMatching([[1, 2, 10], [1, 7, 10], [2, 3, 12], [3, 4, 20], [3, 5, 20], [4, 5, 25], [5, 6, 10], [6, 7, 10], [7, 8, 8]]) === [-1, 2, 1, 4, 3, 6, 5, 8, 7]);
-        }
-
-        function test24_s_nest_expand() {
-            # create nested S-blossom, augment, expand recursively
-            assert(maxWeightMatching([[1, 2, 8], [1, 3, 8], [2, 3, 10], [2, 4, 12], [3, 5, 12], [4, 5, 14], [4, 6, 12], [5, 7, 12], [6, 7, 14], [7, 8, 12]]) === [-1, 2, 1, 5, 6, 3, 4, 8, 7]);
-        }
-
-        function test25_s_t_expand() {
-            # create S-blossom, relabel as T, expand
-            assert(maxWeightMatching([[1, 2, 23], [1, 5, 22], [1, 6, 15], [2, 3, 25], [3, 4, 22], [4, 5, 25], [4, 8, 14], [5, 7, 13]]) === [-1, 6, 3, 2, 8, 7, 1, 5, 4]);
-        }
-
-        function test26_s_nest_t_expand() {
-            # create nested S-blossom, relabel as T, expand
-            assert(maxWeightMatching([[1, 2, 19], [1, 3, 20], [1, 8, 8], [2, 3, 25], [2, 4, 18], [3, 5, 18], [4, 5, 13], [4, 7, 7], [5, 6, 7]]) === [-1, 8, 3, 2, 7, 6, 5, 4, 1]);
-        }
-
-        function test30_tnasty_expand() {
-            # create blossom, relabel as T in more than one way, expand, augment
-            assert(maxWeightMatching([[1, 2, 45], [1, 5, 45], [2, 3, 50], [3, 4, 45], [4, 5, 50], [1, 6, 30], [3, 9, 35], [4, 8, 35], [5, 7, 26], [9, 10, 5]]) === [-1, 6, 3, 2, 8, 7, 1, 5, 4, 10, 9]);
-        }
-
-        function test31_tnasty2_expand() {
-            # again but slightly different
-            assert(maxWeightMatching([[1, 2, 45], [1, 5, 45], [2, 3, 50], [3, 4, 45], [4, 5, 50], [1, 6, 30], [3, 9, 35], [4, 8, 26], [5, 7, 40], [9, 10, 5]]) === [-1, 6, 3, 2, 8, 7, 1, 5, 4, 10, 9]);
-        }
-
-        function test32_t_expand_leastslack() {
-            # create blossom, relabel as T, expand such that a new least-slack S-to-free edge is produced, augment
-            assert(maxWeightMatching([[1, 2, 45], [1, 5, 45], [2, 3, 50], [3, 4, 45], [4, 5, 50], [1, 6, 30], [3, 9, 35], [4, 8, 28], [5, 7, 26], [9, 10, 5]]) === [-1, 6, 3, 2, 8, 7, 1, 5, 4, 10, 9]);
-        }
-
-        function test33_nest_tnasty_expand() {
-            # create nested blossom, relabel as T in more than one way, expand outer blossom such that inner blossom ends up on an augmenting $path
-            assert(maxWeightMatching([[1, 2, 45], [1, 7, 45], [2, 3, 50], [3, 4, 45], [4, 5, 95], [4, 6, 94], [5, 6, 94], [6, 7, 50], [1, 8, 30], [3, 11, 35], [5, 9, 36], [7, 10, 26], [11, 12, 5]]) === [-1, 8, 3, 2, 6, 9, 4, 10, 1, 5, 7, 12, 11]);
-        }
-
-        function test34_nest_relabel_expand() {
-            # create nested S-blossom, relabel as S, expand recursively
-            assert(maxWeightMatching([[1, 2, 40], [1, 3, 40], [2, 3, 60], [2, 4, 55], [3, 5, 55], [4, 5, 50], [1, 8, 15], [5, 7, 30], [7, 6, 10], [8, 10, 10], [4, 9, 30]]) === [-1, 2, 1, 5, 9, 3, 7, 6, 10, 4, 8]);
-        }
-    }
-
-    function test() {
-        global $DEBUG;
-        $unit_tests = new MaxWeightMatchingTests();
-        $method_names = preg_grep('/^test/', get_class_methods($unit_tests));
-        foreach ($method_names as $name) {
-            $unit_tests->$name();
-            print('.');
-        }
-        print("\n");
-    }
-
-    $CHECK_DELTA = true;
-    test();
 }

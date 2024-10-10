@@ -1,0 +1,21 @@
+{
+    "name": "bakert/blossom-php",
+    "description": "Edmonds's Blossom Algorithm in PHP",
+    "type": "library",
+    "require-dev": {
+	    "phpunit/phpunit": "^6 || ^7 || ^8 || ^9.5 || ^10"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Bakert\\BlossomPhp\\": "src/",
+            "Bakert\\BlossomPhp\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Thomas David Baker",
+            "email": "bakert@gmail.com"
+        }
+    ]
+}
